@@ -59,6 +59,8 @@ class Disk {
         /* Flag that disk is a visible Stub disk, i.e., disk that is managed from outside
          * Android (e.g., ARC++) and visible to apps. */
         kStubVisible = 1 << 6,
+        /* Flag that disk is CDROM */
+        kCdrom = 1 << 7,
     };
 
     const std::string& getId() const { return mId; }
