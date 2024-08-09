@@ -334,6 +334,12 @@ status_t Disk::readMetadata() {
 }
 
 status_t Disk::readPartitions() {
+    std::vector<std::string> cmd;
+    std::vector<std::string> output;
+    Table table = Table::kUnknown;
+    bool foundParts = false;
+    status_t res;
+
     int maxMinors = getMaxMinors();
     if (maxMinors < 0) {
         return -ENOTSUP;
@@ -347,15 +353,23 @@ status_t Disk::readPartitions() {
 
     destroyAllVolumes();
 
+    if (!maxMinors) {
+        std::string cdFsType, cdUnused;
+        if (ReadMetadataUntrusted(mDevPath, &cdFsType, &cdUnused, &cdUnused) == OK) {
+            if (cdFsType == "iso9660" || cdFsType == "udf") {
+                LOG(INFO) << "Detect " << cdFsType;
+                goto treat_disk_as_partition;
+            }
+        }
+    }
+
     // Parse partition table
 
-    std::vector<std::string> cmd;
     cmd.push_back(kSgdiskPath);
     cmd.push_back("--android-dump");
     cmd.push_back(mDevPath);
 
-    std::vector<std::string> output;
-    status_t res = maxMinors ? ForkExecvp(cmd, &output) : ENODEV;
+    res = ForkExecvp(cmd, &output);
     if (res != OK) {
         LOG(WARNING) << "sgdisk failed to scan " << mDevPath;
 
@@ -375,8 +389,6 @@ status_t Disk::readPartitions() {
         return res;
     }
 
-    Table table = Table::kUnknown;
-    bool foundParts = false;
     for (const auto& line : output) {
         auto split = android::base::Split(line, kSgdiskToken);
         auto it = split.begin();
@@ -438,6 +450,7 @@ status_t Disk::readPartitions() {
         }
     }
 
+treat_disk_as_partition:
     // Ugly last ditch effort, treat entire disk as partition
     if (table == Table::kUnknown || !foundParts) {
         LOG(WARNING) << mId << " has unknown partition table; trying entire device";

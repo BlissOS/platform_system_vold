@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <sys/mount.h>
 #include <utils/Errors.h>
+#include <android-base/stringprintf.h>
 #include "Iso9660.h"
 #include "Utils.h"
 
@@ -24,24 +25,25 @@ namespace android {
 namespace vold {
 namespace iso9660 {
 
-bool IsSupported() {
+bool IsIso9660Supported() {
     return IsFilesystemSupported("iso9660");
 }
 
+bool IsUdfSupported() {
+    return IsFilesystemSupported("udf");
+}
+
 status_t Mount(const std::string& source, const std::string& target,
-        int ownerUid, int ownerGid, const char* type) {
-    unsigned long flags;
-    char mountData[256];
-
-    const char* c_source = source.c_str();
-    const char* c_target = target.c_str();
-
-    flags = MS_NODEV | MS_NOEXEC | MS_NOSUID | MS_DIRSYNC | MS_RDONLY;
-
-    snprintf(mountData, sizeof(mountData),
-            "utf8,uid=%d,gid=%d", ownerUid, ownerGid);
-
-    return mount(c_source, c_target, type, flags, mountData);
+        int ownerUid, int ownerGid ) {
+    int mountFlags = MS_NODEV | MS_NOEXEC | MS_NOSUID | MS_RDONLY;
+    auto mountData = android::base::StringPrintf("uid=%d,gid=%d", ownerUid, ownerGid);
+    if (mount(source.c_str(), target.c_str(), "iso9660", mountFlags, mountData.c_str()) == 0) {
+        return 0;
+    }
+    if (mount(source.c_str(), target.c_str(), "udf", mountFlags, mountData.c_str()) == 0) {
+        return 0;
+    }
+    return -1;
 }
 
 }  // namespace iso9660

@@ -154,7 +154,9 @@ status_t PublicVolume::doMount() {
         ret = ntfs::Check(mDevPath);
     } else if (mFsType == "vfat") {
         ret = vfat::Check(mDevPath);
-    } else if (mFsType != "iso9660" && mFsType != "udf") {
+    } else if (mFsType == "iso9660" || mFsType == "udf") {
+        // do nothing
+    } else {
         LOG(WARNING) << getId() << " unsupported filesystem check, skipping";
     }
     if (ret) {
@@ -171,8 +173,7 @@ status_t PublicVolume::doMount() {
     } else if (mFsType == "f2fs") {
         ret = f2fs::Mount(mDevPath, mRawPath, mMntOpts, false, true);
     } else if (mFsType == "iso9660" || mFsType == "udf") {
-        ret = iso9660::Mount(mDevPath, mRawPath,
-                AID_MEDIA_RW, AID_MEDIA_RW, mFsType.c_str());
+        ret = iso9660::Mount(mDevPath, mRawPath, AID_MEDIA_RW, AID_MEDIA_RW);
     } else if (mFsType == "ntfs") {
         ret = ntfs::Mount(mDevPath, mRawPath, AID_ROOT,
                  (isVisible ? AID_MEDIA_RW : AID_EXTERNAL_STORAGE), 0007);
