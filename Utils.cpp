@@ -1072,7 +1072,7 @@ bool IsFilesystemSupported(const std::string& fsType) {
 }
 
 bool IsSdcardfsUsed() {
-    return IsFilesystemSupported("sdcardfs") &&
+    return (IsFilesystemSupported("sdcardfs") || IsFilesystemSupported("esdfs")) &&
            base::GetBoolProperty(kExternalStorageSdcardfs, true);
 }
 
